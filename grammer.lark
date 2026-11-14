@@ -1,0 +1,99 @@
+
+start: unit*
+
+unit: args
+    | echo_stmt
+    | if_stmt
+    | for_stmt
+    | func_stmt
+    | return_stmt
+    | break_stmt
+    | continue_stmt
+    | import_stmt
+    | expr_stmt
+
+args: "let" CNAME "=" expr          -> register
+    | "let" CNAME                   -> empty_value
+    | "let" CNAME "=" array         -> let_array
+    | "let" CNAME "=" dict          -> let_dict
+    | CNAME "=" value               -> update
+    | CNAME "+=" value              -> add_equal
+    | CNAME "-=" value              -> min_equal
+    | CNAME "*=" value              -> mul_equal
+    | CNAME "/=" value              -> div_equal
+    | CNAME "^=" value              -> domain_equal
+    | obj_acc                       -> obj_assign
+
+?value: expr
+      | array
+      | dict
+
+array: "[" [value ("," value)*] "]"
+dict: "{" [pair ("," pair)*] "}"
+pair: CNAME ":" value
+obj_acc: CNAME "." CNAME "=" expr -> obj_assignment
+AT: "@"
+NULL: "null"
+
+?expr: logic_or
+
+?logic_or: logic_and
+         | logic_or "||" logic_and -> or_logic
+
+?logic_and: comparison
+          | logic_and "&&" comparison -> and_logic
+
+?comparison: sum
+           | comparison "==" sum -> d_equal
+           | comparison "!=" sum -> n_equal
+           | comparison "<" sum  -> less_than
+           | comparison ">" sum  -> greater_than
+           | comparison "<=" sum -> lt_equal
+           | comparison ">=" sum -> gt_equal
+
+?sum: product
+    | sum "+" product -> add
+    | sum "-" product -> sub
+
+?product: power
+        | product "*" power -> mul
+        | product "/" power -> div
+
+?power: unary
+      | unary "^" power -> domain
+
+?unary: "!" unary -> not_logic
+      | atom
+
+?atom: NUMBER -> number
+     | CNAME -> var
+     | CNAME "[" expr "]" -> arr_index
+     | CNAME "." CNAME -> obj_access
+     | STRING -> string
+     | BOOLEAN -> boolean
+     | "(" expr ")"
+     | AT -> arg_base
+     | AT NUMBER -> arg_base_index
+     | NULL -> null_expr
+
+echo_stmt: "echo" expr ("," expr)*
+if_stmt: "if" expr block
+for_stmt: "for" expr block
+func_stmt: "func" CNAME "(" param ")" block
+return_stmt: "return" expr
+break_stmt: "break"
+continue_stmt: "continue"
+import_stmt: "import" import_path
+expr_stmt: expr
+
+block: "{" unit* "}"
+param: [CNAME ("," CNAME)*]
+import_path: CNAME ("." CNAME)*
+
+BOOLEAN.2: "true" | "false"
+STRING: /"[^"]*"/
+
+%import common.NUMBER
+%import common.CNAME
+%import common.WS
+%ignore WS
